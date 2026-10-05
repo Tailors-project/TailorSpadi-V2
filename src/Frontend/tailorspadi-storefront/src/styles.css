@@ -1,0 +1,8 @@
+:root { font-family: system-ui, sans-serif; color: #203b35; background: #f6f7f3; }
+body { margin: 0; background: #f6f7f3; color: #203b35; }
+.site-header { background: #164a41; }
+.site-header a { color: #fff; text-decoration: none; }
+.site-header a:hover, .site-header a:focus-visible { text-decoration: underline; }
+main { max-width: 960px; }
+.placeholder-card { background: #fff; border: 1px solid #dce4de; border-radius: 1rem; }
+.eyebrow { color: #516d63; letter-spacing: .12em; font-size: .8rem; font-weight: 700; text-transform: uppercase; }
