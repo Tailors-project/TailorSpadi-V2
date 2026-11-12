@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using TailorSpadi.Application.Common;
 
 namespace TailorSpadi.Api.Errors;
 
@@ -16,7 +17,7 @@ public sealed class ApiExceptionHandler(
         if (exception is ValidationException validationException)
         {
             Dictionary<string, string[]> errors = validationException.Errors
-                .GroupBy(error => error.PropertyName)
+                .GroupBy(error => ToCamelCase(error.PropertyName))
                 .ToDictionary(group => group.Key, group => group.Select(error => error.ErrorMessage).Distinct().ToArray());
 
             problem = new HttpValidationProblemDetails(errors)
@@ -24,6 +25,11 @@ public sealed class ApiExceptionHandler(
                 Status = StatusCodes.Status400BadRequest,
                 Title = "One or more validation errors occurred."
             };
+            problem.Extensions["code"] = "validation_failed";
+        }
+        else if (exception is ProblemException business)
+        {
+            problem = ProblemFactory.Create(httpContext, business);
         }
         else
         {
@@ -43,5 +49,16 @@ public sealed class ApiExceptionHandler(
             HttpContext = httpContext,
             ProblemDetails = problem
         });
+    }
+
+    private static string ToCamelCase(string propertyName)
+    {
+        if (propertyName.StartsWith("Business.", StringComparison.Ordinal))
+        {
+            propertyName = propertyName["Business.".Length..];
+        }
+        // "Business.BusinessName" -> "business.businessName"; keeps client field names predictable.
+        return string.Join('.', propertyName.Split('.').Select(part =>
+            part.Length == 0 ? part : char.ToLowerInvariant(part[0]) + part[1..]));
     }
 }

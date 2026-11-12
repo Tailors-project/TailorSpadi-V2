@@ -1,61 +1,39 @@
-# Verified dependency versions
+# Package versions
 
-Recorded for Module 1 on 2026-09-30. Exact transitive versions are in each
-project's packages.lock.json and the repository package-lock.json.
+The project targets .NET 10 (SDK baseline 10.0.201) and Node >=22.12.0.
+Exact direct and transitive versions are in packages.lock.json and package-lock.json.
 
-## Backend
-
-| Package/tool | Version |
+| Backend dependency | Version |
 | --- | --- |
-| Local .NET SDK | 10.0.201 |
-| Target framework | net10.0 |
-| Mediator.Abstractions / SourceGenerator | 3.0.2 |
-| FluentValidation.DependencyInjectionExtensions | 12.1.1 |
-| Microsoft.EntityFrameworkCore / Design / dotnet-ef | 10.0.5 |
-| Npgsql.EntityFrameworkCore.PostgreSQL | 10.0.1 |
-| Microsoft.Extensions logging/options/health packages | 10.0.5 |
+| Mediator | 3.0.2 |
+| FluentValidation | 12.1.1 |
+| EF Core / JwtBearer | 10.0.5 |
+| Npgsql EF provider | 10.0.1 |
+| SkiaSharp and Linux native assets | 3.119.0 |
 | Serilog.AspNetCore | 10.0.0 |
 | Swashbuckle.AspNetCore | 10.2.3 |
-| Microsoft.AspNetCore.Mvc.Testing | 10.0.5 |
-| Microsoft.NET.Test.Sdk | 17.14.1 |
-| xunit | 2.9.3 |
-| xunit.runner.visualstudio | 3.1.5 |
-| Testcontainers.PostgreSql | 4.15.0 |
 
-Mediator's [MIT license](https://github.com/martinothamar/Mediator/blob/main/LICENSE)
-and [registration/pipeline documentation](https://github.com/martinothamar/Mediator)
-were checked. The actual solution builds and dispatch tests verify compatibility.
-
-Swagger and Testcontainers were updated after restore identified vulnerable
-transitive dependencies. The final restore does not suppress NuGet audit warnings.
-
-## Frontend (all three workspaces)
-
-| Package | Version |
+| Frontend dependency | Version |
 | --- | --- |
 | React / React DOM | 19.2.4 |
-| React Router DOM | 7.18.4 |
-| TanStack React Query | 5.90.21 |
+| React Router | 7.18.4 |
+| TanStack Query | 5.90.21 |
 | Axios | 1.20.0 |
+| React Hook Form | 7.91.0 |
 | Bootstrap | 5.3.8 |
 | TypeScript | 5.9.3 |
-| Vite | 7.3.6 |
-| Vite React plugin | 5.1.4 |
-| Vitest | 4.1.11 |
-| React types | 19.2.14 |
-| React DOM types | 19.2.3 |
+| Vite | 7.3.7 |
+| Vitest | 4.1.12 |
+| Testing Library React | 16.3.0 |
+| jsdom | 26.1.0 |
+| Playwright Test | 1.65.0 |
 
-Local verification used Node 22.17.0 and npm 11.19.1. The npm lock includes the
-compatible esbuild security update. The final npm audit reported zero known
-vulnerabilities at verification time.
+Vitest was updated from the downloaded 4.1.11 to address the reported mocker
+advisories. Registry installation reported zero npm vulnerabilities. See
+verification.md for the final checks, rather than treating a historical audit as
+an ongoing guarantee.
 
-## Containers
-
-- mcr.microsoft.com/dotnet/sdk:10.0
-- mcr.microsoft.com/dotnet/aspnet:10.0
-- node:22-alpine
-- nginx:stable-alpine
-- postgres:17-alpine
-
-These tags receive updates. Lock image digests as part of a production release
-process; they are not immutable deployment pins in this local foundation.
+Container tags: postgres:17-alpine, nginx:stable-alpine, node:22-alpine,
+mcr.microsoft.com/dotnet/sdk:10.0 and mcr.microsoft.com/dotnet/aspnet:10.0.
+These are mutable local development tags; production releases should pin reviewed
+digests. SkiaSharp native assets are verified in the Linux API image.

@@ -27,7 +27,10 @@ public sealed class PostgresTests : IAsyncLifetime
         using IServiceScope scope = factory.Services.CreateScope();
         AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         Assert.True(await dbContext.Database.CanConnectAsync());
-        Assert.Empty(dbContext.Model.GetEntityTypes());
+        string[] entities = dbContext.Model.GetEntityTypes().Select(entity => entity.ClrType.Name).OrderBy(name => name).ToArray();
+        Assert.Equal(
+            ["AuditLogEntry", "PasswordResetToken", "RefreshToken", "Tenant", "TenantMembership", "User"],
+            entities);
 
         await using var connection = new NpgsqlConnection(_postgres.GetConnectionString());
         await connection.OpenAsync();

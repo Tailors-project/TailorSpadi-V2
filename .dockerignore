@@ -8,4 +8,9 @@
 .env.*
 !.env.example
 artifacts
+deploy/certs
+**/storage
 TestResults
+**/TestResults
+test-results
+playwright-report

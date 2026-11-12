@@ -1,226 +1,158 @@
 # TailorSpadi
 
-Module 1 foundation: one .NET 10 API, one PostgreSQL database, and three React
-shells. Accounts, tenant resolution, and business features are intentionally
-deferred. Placeholder routes do not grant access to any business data.
+Module 2 implements global identity, tailor/customer registration, business onboarding,
+hostname-based tenancy and logo storage. It builds on the .NET 10 API, PostgreSQL 17
+and three React applications from Module 1. Orders, catalog, measurements, payments,
+staff invitations and management dashboards are deferred.
 
-## Quick start: local development
+## Local setup (Windows / PowerShell)
 
-Prerequisites: .NET SDK 10.0.201 or a later .NET 10 feature band, Node.js 22.12+
-(use Node 22 LTS), and Docker Desktop with Linux containers for PostgreSQL.
-You can also use a separately installed PostgreSQL 17 instance.
-
-Run these commands from the repository root in PowerShell:
+Requires .NET SDK 10.0.201+, Node 22.12+, Docker Desktop's Linux engine and
+OpenSSL (included with Git for Windows). Run from the repository root:
 
 ```powershell
 ./scripts/Initialize-Local.ps1
+./scripts/Initialize-LocalTls.ps1 -Trust
 docker compose up -d postgres
 dotnet restore TailorSpadi.sln --locked-mode
 dotnet tool restore
 npm ci
-dotnet run --project src/Backend/TailorSpadi.Api
-```
-
-The initialization script generates a random local database password in the
-ignored `.env` and saves the matching connection string in .NET user secrets.
-It preserves an existing `.env`. Neither file should be committed.
-
-Start the frontends in three additional terminals:
-
-```powershell
-npm run dev:storefront
-npm run dev:backoffice
-npm run dev:admin
-```
-
-| Component | Local URL |
-| --- | --- |
-| Storefront | http://localhost:5173 |
-| Registration / onboarding | http://localhost:5174/register / http://localhost:5174/onboarding |
-| Business login / workspace | http://localhost:5174/login / http://localhost:5174/backoffice |
-| Administration | http://localhost:5175/admin |
-| API metadata | http://localhost:5080/api/system-info |
-| Swagger UI (Development only) | http://localhost:5080/swagger |
-| Liveness / readiness | http://localhost:5080/health/live / http://localhost:5080/health/ready |
-| PostgreSQL | localhost:54329 |
-
-Vite forwards each shell's same-origin `/api` calls to port 5080.
-The metadata call is demonstrated only in the storefront. API credentials,
-connection strings, and access tokens must never go into frontend variables.
-
-For a separately installed database, set its connection string instead:
-
-```powershell
-dotnet user-secrets set "ConnectionStrings:Postgres" "Host=localhost;Port=5432;Database=tailorspadi;Username=YOUR_USER;Password=YOUR_PASSWORD" --project src/Backend/TailorSpadi.Api
-```
-
-Create that database/user yourself with PostgreSQL administration tools.
-Module 1 has no business schema and does not create or migrate databases.
-
-## Docker: the complete application
-
-Stop the local API first because both modes use port 5080.
-
-```powershell
-./scripts/Initialize-Local.ps1
-docker compose up --build -d --wait
-docker compose ps
-./scripts/Verify-Routes.ps1
-```
-
-Open http://localhost:8080 for the storefront. Main-domain paths `/register`,
-`/onboarding`, and `/admin` select their corresponding frontend.
-
-The demonstration tenant is http://johnfashion-001.localhost:8080.
-Its `/login` and `/backoffice` paths select the backoffice. If your browser or
-OS does not resolve that hostname, add this entry to your hosts file:
-
-```text
-127.0.0.1 johnfashion-001.localhost
-```
-
-The route-verification script supplies Host headers itself, so it does not need
-a hosts-file change. The hostname is a routing demonstration, not a tenant record.
-
-Container services:
-- `api`: the only backend host, running as the .NET non-root application user.
-- `postgres`: PostgreSQL with a named volume and readiness check.
-- `storefront`, `backoffice`, `admin`: built React files served by Nginx.
-- `gateway`: local same-origin host/path routing.
-
-Swagger is disabled in the Production container environment. API port 5080 and
-gateway port 8080 are bound to loopback for local use. Frontend containers are
-internal; access them through the gateway.
-
-```powershell
-docker compose logs api
-docker compose stop
-docker compose down
-```
-
-`down` preserves the database volume. Do not add `-v` unless you intend to
-delete that database. Changing the password in `.env` does not change the
-password of a database already initialized in the volume.
-
-The dedicated local subnet is `172.30.71.0/24`; the gateway is `172.30.71.10`.
-If that subnet conflicts with another network, change both Compose IPAM and
-`ReverseProxy__KnownProxies__0` together.
-
-## Visual Studio
-
-1. Open `TailorSpadi.sln` in a Visual Studio installation supporting .NET 10.
-2. Run the initialization script and start PostgreSQL using the commands above.
-3. Set `TailorSpadi.Api` as the startup project and select the `http` profile.
-4. Press F5. Start each React shell with its npm command in a terminal.
-5. Run unit/API tests in Test Explorer. Tests tagged `Category=Database`
-   require the Docker Linux engine and use their own disposable PostgreSQL.
-
-Frontend shells are independent npm workspaces, not extra backend hosts.
-
-## Project layout
-
-```text
-TailorSpadi.sln
-Directory.Build.props          Nullable, analyzers, warnings as errors
-.editorconfig                  C# and text conventions
-global.json                    .NET SDK baseline
-.config/dotnet-tools.json      Local EF command-line tool
-src/
-  Backend/
-    TailorSpadi.Api/            Endpoints, errors, composition, configuration
-    TailorSpadi.Application/    Features/SystemInfo, behaviors, contracts, time
-    TailorSpadi.Domain/         Intentionally empty business layer
-    TailorSpadi.Infrastructure/ Persistence and PostgreSQL health check
-  Frontend/
-    Dockerfile                 Builds one selected frontend workspace
-    tailorspadi-storefront/
-    tailorspadi-backoffice/
-    tailorspadi-admin/
-tests/
-  TailorSpadi.UnitTests/
-  TailorSpadi.IntegrationTests/
-deploy/nginx/                  Gateway routing and trusted forwarding
-scripts/                       Local setup and route verification
-docs/                          Coding rules, decisions, verification record
-compose.yaml
-.env.example
-package.json
-package-lock.json
-```
-
-The API references Application and Infrastructure. Infrastructure references
-Application and Domain. Application references Domain. Domain has no project or
-framework dependencies. Dependency injection is composed in `Program.cs`.
-
-Queries and commands use the same database. The scoped mediator invokes
-logging, validation, then the handler. Scoped lifetime allows future handlers
-to use the scoped DbContext. There is no custom mediator wrapper, generic
-repository, transaction pipeline, or separate read store.
-
-The [Mediator library](https://github.com/martinothamar/Mediator) is MIT licensed.
-Its source generator lives only in the API; messages and handlers use its
-abstractions in Application. The build and dispatch tests verify .NET 10 use.
-
-## Configuration
-
-| Setting | Purpose |
-| --- | --- |
-| `ConnectionStrings:Postgres` | Required connection string, from user secrets or environment |
-| `BusinessTime:DefaultTimeZone` | Defaults to `Africa/Lagos` |
-| `AllowedHosts` | Semicolon-separated accepted API hostnames |
-| `Cors:AllowedOrigins` | Explicit development origins; empty in Production |
-| `ReverseProxy:KnownProxies` | Explicit trusted proxy IP addresses |
-| `ASPNETCORE_ENVIRONMENT` | Development enables Swagger and local CORS origins |
-
-Environment variables use double underscores, e.g.
-`ConnectionStrings__Postgres`. Docker Compose reads `.env`; `dotnet run`
-does not. The initialization script bridges local credentials through user secrets.
-
-The database context requires configuration but does not connect at startup. Metadata and
-liveness remain available during a database outage; readiness returns 503.
-Health responses contain only status text.
-
-Production browser traffic should use the same origin through a trusted edge,
-so CORS remains disabled by default. If another origin is needed, explicitly
-list it after validation. Do not combine wildcard origins and credentials.
-
-## Dates and times
-
-- Inject `TimeProvider` for the UTC clock. Normalize offset-bearing inputs to UTC.
-- Persist event instants as PostgreSQL `timestamptz`; expose UTC ISO 8601 with `Z`.
-- Persist calendar dates as `date` / `DateOnly` / `YYYY-MM-DD`.
-- `BusinessTime` converts business-local appointments and local-day boundaries
-  using the named zone. Local appointment input must have unspecified DateTime kind.
-- Each shell has a small `time.ts` helper that formats explicitly in Lagos.
-- Daily queries use `start <= timestamp && timestamp < end`.
-- Reject ambiguous/invalid local times instead of silently guessing.
-- Tenant-specific time zones and deadline rules arrive with their business modules.
-
-## Migrations
-
-There are no business entities or migrations in Module 1. Do not create an empty
-migration just to demonstrate tooling. EF configuration belongs in Infrastructure.
-
-After adding the first real entities and mappings in a later module:
-
-```powershell
-dotnet tool restore
-$env:ASPNETCORE_ENVIRONMENT = "Development"
-dotnet ef migrations add InitialBusinessSchema --project src/Backend/TailorSpadi.Infrastructure --startup-project src/Backend/TailorSpadi.Api --output-dir Persistence/Migrations
+$env:ASPNETCORE_ENVIRONMENT = 'Development'
 dotnet ef database update --project src/Backend/TailorSpadi.Infrastructure --startup-project src/Backend/TailorSpadi.Api
+docker compose up --build -d --wait
 ```
 
-For deployment, generate and review an idempotent migration script in CI:
+If Windows marks a copied script as downloaded, review it and use a process-only
+execution policy override: `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/Initialize-Local.ps1`.
+Do not change the machine-wide execution policy.
+
+The initialization script preserves the existing database password, adds a signing
+key when upgrading Module 1, and configures .NET user secrets without printing
+credentials. `.env`, private certificates, uploaded files and build output are ignored.
+
+The TLS script generates a 90-day certificate for localhost, tailorspadi.localhost, *.tailorspadi.localhost and
+127.0.0.1. `-Trust` installs this certificate in the current Windows user's trusted
+root store. It is for this local environment only. Keep its private key private.
+To renew, pass `-Renew -Trust` to the TLS
+script, and restart the gateway. Remove the old certificate from the user's trusted
+root store when it is no longer needed.
+
+| Page/service | Address |
+| --- | --- |
+| Storefront | https://tailorspadi.localhost:8443 |
+| Tailor registration | https://tailorspadi.localhost:8443/register |
+| Platform sign-in / businesses | https://tailorspadi.localhost:8443/login /businesses |
+| Onboarding | https://tailorspadi.localhost:8443/onboarding |
+| Admin sign-in | https://tailorspadi.localhost:8443/admin/login |
+| Created business | https://<assigned-subdomain>.tailorspadi.localhost:8443 |
+| Business sign-in/workspace | Tenant host /login and /backoffice |
+| Customer registration/sign-in | Tenant host /register-customer and /customer/login |
+| Health | https://tailorspadi.localhost:8443/health/live and /health/ready |
+| Public API metadata | https://tailorspadi.localhost:8443/api/system-info |
+
+No demo tenants or default administrator credentials are seeded. Register and
+complete onboarding to create a business. Unknown tenant hosts return 404;
+suspended/deactivated tenants return 403. Browsers normally resolve *.tailorspadi.localhost to
+loopback. Add explicit hosts entries for your created business if your OS does not.
+HTTP port 8080 redirects accepted hosts to HTTPS; authentication verification uses HTTPS.
+
+PostgreSQL is loopback-only. Its default port is 54329; change `POSTGRES_PORT` in
+`.env` and rerun initialization if Windows reserves that port. This machine uses
+55432. Check `netsh interface ipv4 show excludedportrange protocol=tcp` if Docker
+reports a forbidden socket bind. Never delete the database volume to fix a port issue.
+
+## Development and architecture
+
+`TailorSpadi.sln` contains Api, Application, Domain, Infrastructure and two test
+projects. Domain has no framework dependency. Application contains feature handlers,
+validators and persistence contracts. Infrastructure implements those contracts with
+EF Core, PostgreSQL, password hashing, token generation and local image storage.
+API endpoints bind requests and dispatch through the scoped Mediator pipeline.
+
+The React apps are npm workspaces. `tailorspadi-shared` contains the shared API client,
+in-memory session store, refresh queue, route guards and form helpers. React Hook
+Form handles forms; TanStack Query handles server state. The shared package's source
+is compiled by each application.
+
+For API debugging, stop the Docker API before running
+`dotnet run --project src/Backend/TailorSpadi.Api`. Swagger is available at
+http://localhost:5080/swagger in Development only. `npm run dev:storefront`,
+`npm run dev:backoffice` and `npm run dev:admin` start Vite on 5173/5174/5175.
+These HTTP servers are useful for isolated UI work; use the HTTPS Docker gateway
+for host-scoped cookie and end-to-end authentication verification.
+
+## Sessions, onboarding and storage
+
+Access tokens last 15 minutes and stay in React memory. Refresh tokens are hashed
+in PostgreSQL and rotate in host-only HttpOnly, Secure, SameSite=Strict cookies.
+Platform, tenant and admin sessions have separate audiences and cookie names.
+Refresh/logout require an exact accepted Origin and `X-Requested-With: TailorSpadi`.
+Password/security-version changes invalidate old sessions. Reusing a rotated token
+revokes its refresh-token family, including a simultaneous rotation conflict.
+
+Platform owners can own multiple businesses but have one unfinished draft at a
+time. Business information, branding and the selected slug/review step are saved.
+Completion atomically allocates the unique subdomain, activates the tenant, creates
+its owner membership and records an audit entry. Repeated completion returns the
+same result. Assigned subdomains cannot be renamed.
+
+Opening a tenant's backoffice requires signing in again on that hostname. Tokens
+are never transferred through URLs or browser storage. Customer accounts are global;
+joining another business requires authentication. Admin receives a separate login
+and a protected placeholder, not a management dashboard.
+
+Logo uploads accept decoded PNG/JPEG/WebP within byte/pixel limits and are re-encoded
+to PNG. Keys are server-generated. Local debugging stores files under
+`%LOCALAPPDATA%/TailorSpadi/storage`; Docker uses the `api-storage` volume. Failed
+writes remove temporary files; failed database saves remove the new logo. Replaced
+files are deleted with bounded retries, and persistent storage failures are surfaced.
+
+## Database migrations and deployment
+
+Committed migrations include `InitialIdentityAndTenancy` and
+`EnforceIdentityRelationships`. The application never migrates or creates tables at
+startup. Apply migrations explicitly before starting the new API version. The second
+migration adds audit foreign keys and ensures tenant refresh sessions reference an
+existing membership. A migration test checks an empty database and model consistency.
+
+Generate a deployment script with:
 
 ```powershell
-dotnet ef migrations script --idempotent --project src/Backend/TailorSpadi.Infrastructure --startup-project src/Backend/TailorSpadi.Api --output migrations.sql
+dotnet ef migrations script --idempotent --project src/Backend/TailorSpadi.Infrastructure --startup-project src/Backend/TailorSpadi.Api --output artifacts/migrations.sql
 ```
 
-Apply it as an explicit deployment step with deployment credentials before
-switching traffic. The API never calls `EnsureCreated` or `Migrate` on startup.
-Back up before schema changes and plan application/schema compatibility for rollback.
+Back up existing data and review the script before applying it to any non-local
+system. Production requires a real certificate/DNS, reviewed host configuration,
+secrets, storage/backups and monitoring. This repository's Compose setup is local.
 
-## Verification commands
+`TENANCY_BASE_DOMAIN` configures the gateway and API domain together. Replace the
+local certificate for any other domain. The API accepts forwarded protocol/address
+only from the configured proxy. `AUTH_SIGNING_KEY` must be a strong random secret;
+startup rejects weak/missing keys and insecure production refresh-cookie settings.
+
+Administrator provisioning is disabled by default. Explicitly configure
+`Auth:AdminSeed:Enabled`, `Email` and a strong `Password` through secret configuration
+for the initial provision, then disable it. Existing accounts are never overwritten.
+Real email delivery is deferred to Module 7. In Development, `Email:ShowInConsole`
+prints the recipient, subject and full message to the API console and, in Debug
+builds, Visual Studio's Output window (select Debug). No SMTP server is needed.
+This local preview includes password-reset links; do not share or collect this output.
+Set `Email:ShowInConsole` to `false` to suppress message bodies. Production never
+registers the development email adapter, even if this flag is set.
+
+To enable previews in the local Docker stack:
+
+```powershell
+docker compose -f compose.yaml -f compose.email-debug.yaml up --build -d --wait
+docker compose logs -f api
+```
+
+Register a test account, open `/forgot-password`, submit that email, then copy the
+reset link from the API output into the browser. Unknown emails intentionally produce
+no message. Links expire after 30 minutes and can be used once. Return to the normal
+local configuration with `docker compose up -d --wait`; it uses Production mode.
+
+## Verification
 
 ```powershell
 dotnet restore TailorSpadi.sln --locked-mode
@@ -230,14 +162,18 @@ dotnet test TailorSpadi.sln --no-build
 npm ci
 npm run build
 npm test
+npm audit
 ./scripts/Verify-Routes.ps1
+./scripts/Verify-Browser.ps1
+npm run test:e2e
 ```
 
-For a focused run without Docker:
-`dotnet test TailorSpadi.sln --no-build --filter "Category!=Database"`.
-This deliberately excludes the real PostgreSQL test; it is not full verification.
+Database tests use disposable PostgreSQL containers and apply the real migrations.
+The Playwright test uses installed Microsoft Edge and the trusted HTTPS gateway;
+it removes its uniquely named account/business afterwards. It requires Docker
+access for that cleanup. `E2E_BASE_URL` can override the local base URL.
 
-Optional Windows browser checks: run `./scripts/Verify-Browser.ps1 -Local` while the local servers are running, or `./scripts/Verify-Browser.ps1` for Docker. These launch headless Edge and verify rendered React content, including the live API response.
-
-See [package versions](docs/versions.md), [verification results](docs/verification.md), [coding standards](docs/coding-standards.md),
-and [routing and Module 2 decisions](docs/architecture.md).
+See [architecture](docs/architecture.md), [API contract](docs/module-2-api.md),
+[coding standards](docs/coding-standards.md), [Module 2 requirements](docs/module-2-guidelines.md)
+and [verification results](docs/verification.md).
+For manual acceptance steps and automated checks, use the [Module 2 testing guide](docs/module-2-testing-guide.md).
