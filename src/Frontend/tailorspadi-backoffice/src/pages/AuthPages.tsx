@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ProblemAlert, TextField, applyServerErrors, passwordHints, passwordProblem, toProblem, useAuth } from 'tailorspadi-shared';
+import { ProblemAlert, TextField, applyServerErrors, passwordHints, passwordProblem, phoneProblem, toProblem, useAuth } from 'tailorspadi-shared';
 
 interface RegisterForm {
   firstName: string; lastName: string; email: string; phone: string; password: string; confirmPassword: string;
@@ -44,7 +44,7 @@ export function RegisterPage() {
         </div>
         <TextField<RegisterForm> name="email" label="Email" type="email" autoComplete="email" register={register} errors={errors}
           options={{ required: 'Enter your email', pattern: { value: /^\S+@\S+\.\S+$/, message: 'Enter a valid email' } }} />
-        <TextField<RegisterForm> name="phone" label="Phone" type="tel" autoComplete="tel" register={register} errors={errors} options={{ required: 'Enter your phone number' }} />
+        <TextField<RegisterForm> name="phone" label="Phone" type="tel" autoComplete="tel" register={register} errors={errors} options={{ validate: (value) => phoneProblem(value) ?? true }} />
         <TextField<RegisterForm> name="password" label="Password" type="password" autoComplete="new-password" register={register} errors={errors}
           options={{ validate: (value) => passwordProblem(value, email) ?? true }}
           hint={<ul className="list-unstyled mb-0">{passwordHints(password, email).map((hint) => <li key={hint.text}>{hint.ok ? '✓' : '○'} {hint.text}</li>)}</ul>} />
@@ -81,6 +81,7 @@ export function LoginPage({ tenantName }: { tenantName?: string }) {
   return (
     <section className="placeholder-card p-4 p-md-5">
       <h1>{tenantName ? `Sign in to ${tenantName}` : 'Welcome back'}</h1>
+      {tenantName && <p className="text-secondary">Use the email address you registered your account with.</p>}
       <form onSubmit={onSubmit} noValidate className="mt-3">
         <ProblemAlert message={error} />
         <TextField<LoginForm> name="email" label="Email" type="email" autoComplete="username" register={register} errors={errors} options={{ required: 'Enter your email' }} />

@@ -28,10 +28,10 @@ public sealed class SubdomainRulesTests
     }
 
     [Fact]
-    public void LongNamesLeaveRoomForTheSuffixWithinTheDnsLimit()
+    public void LongNamesStayWithinTheDnsLimit()
     {
         string slugBase = SubdomainRules.CreateBase(new string('a', 200));
-        string label = SubdomainRules.WithSuffix(slugBase, 7);
+        string label = slugBase;
 
         Assert.True(slugBase.Length <= SubdomainRules.MaxBaseLength);
         Assert.True(label.Length <= SubdomainRules.MaxLabelLength);
@@ -45,27 +45,6 @@ public sealed class SubdomainRulesTests
         string slugBase = SubdomainRules.CreateBase(input);
 
         Assert.False(slugBase.EndsWith('-'));
-    }
-
-    [Fact]
-    public void SuffixIsThreeDigits()
-    {
-        Assert.Equal("john-fashion-001", SubdomainRules.WithSuffix("john-fashion", 1));
-        Assert.Equal("john-fashion-042", SubdomainRules.WithSuffix("john-fashion", 42));
-        Assert.Equal("john-fashion-999", SubdomainRules.WithSuffix("john-fashion", 999));
-    }
-
-    [Fact]
-    public void SuffixParsingOnlyAcceptsTheExactShape()
-    {
-        Assert.True(SubdomainRules.TryGetSuffix("john-fashion-007", "john-fashion", out int suffix));
-        Assert.Equal(7, suffix);
-
-        Assert.False(SubdomainRules.TryGetSuffix("john-fashion-7", "john-fashion", out _));
-        Assert.False(SubdomainRules.TryGetSuffix("john-fashion-0071", "john-fashion", out _));
-        Assert.False(SubdomainRules.TryGetSuffix("john-fashion-abc", "john-fashion", out _));
-        Assert.False(SubdomainRules.TryGetSuffix("john-fashion-x-007", "john-fashion", out _));
-        Assert.False(SubdomainRules.TryGetSuffix("other-007", "john-fashion", out _));
     }
 
     [Theory]

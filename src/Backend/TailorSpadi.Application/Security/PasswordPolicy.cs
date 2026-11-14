@@ -2,7 +2,7 @@ namespace TailorSpadi.Application.Security;
 
 public static class PasswordPolicy
 {
-    public const int MinLength = 10;
+    public const int MinLength = 7;
     public const int MaxLength = 128;
 
     /// <summary>Returns a user-safe message describing the first violated rule, or null when acceptable.</summary>

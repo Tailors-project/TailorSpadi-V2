@@ -80,11 +80,11 @@ public sealed class ModuleTwoCompletionTests(PostgresFixture postgres) : Databas
         Assert.Equal(HttpStatusCode.OK, saved.Status);
         ApiResult resumed = await App.GetAsync("localhost", "/api/onboarding", session.AccessToken);
         Assert.Equal(4, resumed.Json.GetProperty("step").GetInt32());
-        Assert.Equal("ada-bespoke", resumed.Str("slugBase"));
-        Assert.Equal(HttpStatusCode.NotFound, (await App.GetAsync("ada-bespoke-001.localhost", "/api/tenant/current")).Status);
+        Assert.Equal("ada-fashion", resumed.Str("slugBase"));
+        Assert.Equal(HttpStatusCode.NotFound, (await App.GetAsync("ada-fashion.localhost", "/api/tenant/current")).Status);
         ApiResult complete = await App.PostAsync("localhost", "/api/onboarding/complete",
             new { draftId = resumed.Str("draftId") }, session.AccessToken);
-        Assert.StartsWith("ada-bespoke-", complete.Str("subdomain"));
+        Assert.Equal("ada-fashion", complete.Str("subdomain"));
         Assert.Equal(HttpStatusCode.OK, (await App.GetAsync(complete.Str("subdomain") + ".localhost", "/api/tenant/current")).Status);
     }
 

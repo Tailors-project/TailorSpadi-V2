@@ -29,6 +29,24 @@ beforeEach(() => vi.resetAllMocks());
 afterEach(cleanup);
 
 describe('onboarding', () => {
+  it.each(['222222222222222222222222', '-------', '12+3456789'])('blocks invalid WhatsApp number %s before saving', async (whatsApp) => {
+    api.get.mockResolvedValue({ data: { ...draft, step: 1 } });
+    show();
+    fireEvent.change(await screen.findByLabelText('WhatsApp (optional)'), { target: { value: whatsApp } });
+    fireEvent.click(screen.getByText('Continue'));
+    await screen.findByText('Enter a valid WhatsApp number with 7–15 digits');
+    expect(api.put).not.toHaveBeenCalled();
+  });
+
+  it.each(['', '+234 (901) 234-5678'])('allows optional or valid WhatsApp number %s', async (whatsApp) => {
+    api.get.mockResolvedValue({ data: { ...draft, step: 1 } });
+    api.put.mockResolvedValue({ data: { ...draft, step: 2 } });
+    show();
+    fireEvent.change(await screen.findByLabelText('WhatsApp (optional)'), { target: { value: whatsApp } });
+    fireEvent.click(screen.getByText('Continue'));
+    await waitFor(() => expect(api.put).toHaveBeenCalledWith('/onboarding/business', expect.objectContaining({ whatsApp })));
+  });
+
   it('shows an initial error and allows retry instead of staying on loading', async () => {
     api.get.mockRejectedValueOnce(new Error('Unavailable')).mockResolvedValue({ data: draft });
     show();
@@ -42,19 +60,21 @@ describe('onboarding', () => {
     api.post.mockResolvedValue({ data: { businessName: 'Ada Fashion', subdomain: 'ada-custom-001', websiteUrl: 'https://ada-custom-001.localhost:8443/', backofficeUrl: 'https://ada-custom-001.localhost:8443/login' } });
     show();
     fireEvent.click(await screen.findByText('Launch my business'));
-    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/onboarding/complete', { draftId: 'draft-1', slugBase: 'ada-custom' }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith('/onboarding/complete', { draftId: 'draft-1' }));
     await screen.findByText('Your TailorSpadi website is ready.');
   });
 
   it('saves the address before showing review', async () => {
     api.get.mockResolvedValue({ data: { ...draft, step: 3 } });
-    api.post.mockResolvedValue({ data: { slugBase: 'ada-custom', suggestedSubdomain: 'ada-custom-001', available: true } });
+    api.post.mockResolvedValue({ data: { slugBase: 'ada-custom', suggestedSubdomain: 'ada-fashion', url: 'https://ada-fashion.localhost/', available: true } });
     api.put.mockResolvedValue({ data: draft });
     show();
     await screen.findByText(/Your store will be at/);
+    expect(screen.queryByLabelText('Address name')).toBeNull();
+    expect(screen.getByText('https://ada-fashion.localhost/')).toBeTruthy();
     fireEvent.click(screen.getByText('Continue'));
     await screen.findByText('Review and launch');
-    expect(api.put).toHaveBeenCalledWith('/onboarding/subdomain', { slugBase: 'ada-custom' });
+    expect(api.put).toHaveBeenCalledWith('/onboarding/subdomain', {});
   });
 });
 

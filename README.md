@@ -78,6 +78,10 @@ For API debugging, stop the Docker API before running
 `dotnet run --project src/Backend/TailorSpadi.Api`. Swagger is available at
 http://localhost:5080/swagger in Development only. `npm run dev:storefront`,
 `npm run dev:backoffice` and `npm run dev:admin` start Vite on 5173/5174/5175.
+Run both storefront and backoffice for the landing page's business links: port 5173
+redirects `/login`, `/register` and other business routes to port 5174, preserving
+the hostname and query string. Business pages can also be opened directly at
+http://127.0.0.1:5174/login and http://127.0.0.1:5174/register.
 These HTTP servers are useful for isolated UI work; use the HTTPS Docker gateway
 for host-scoped cookie and end-to-end authentication verification.
 

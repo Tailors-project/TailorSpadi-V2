@@ -7,12 +7,10 @@ namespace TailorSpadi.Domain.Tenancy;
 public static class SubdomainRules
 {
     public const int MaxLabelLength = 63;
-    public const int SuffixDigits = 3;
-    public const int MaxSuffix = 999;
     public const int MinBaseLength = 3;
 
-    /// <summary>Leaves room for a hyphen and the numeric suffix inside the 63-character DNS label.</summary>
-    public const int MaxBaseLength = MaxLabelLength - 1 - SuffixDigits;
+    /// <summary>A generated address fits inside a single DNS label.</summary>
+    public const int MaxBaseLength = MaxLabelLength;
 
     /// <summary>
     /// Builds a lowercase ASCII slug base: Unicode normalization, diacritic removal, "&amp;" to "and",
@@ -64,22 +62,6 @@ public static class SubdomainRules
     }
 
     public static bool IsMeaningful(string slugBase) => slugBase.Length >= MinBaseLength;
-
-    public static string WithSuffix(string slugBase, int suffix) =>
-        string.Create(CultureInfo.InvariantCulture, $"{slugBase}-{suffix:D3}");
-
-    /// <summary>Extracts the numeric suffix of <paramref name="subdomain"/> when it is exactly base-NNN.</summary>
-    public static bool TryGetSuffix(string subdomain, string slugBase, out int suffix)
-    {
-        suffix = 0;
-        string prefix = slugBase + "-";
-        if (!subdomain.StartsWith(prefix, StringComparison.Ordinal) || subdomain.Length != prefix.Length + SuffixDigits)
-        {
-            return false;
-        }
-
-        return int.TryParse(subdomain.AsSpan(prefix.Length), NumberStyles.None, CultureInfo.InvariantCulture, out suffix);
-    }
 
     /// <summary>A valid single DNS label: lowercase letters, digits and inner hyphens, at most 63 characters.</summary>
     public static bool IsValidLabel(string? label)

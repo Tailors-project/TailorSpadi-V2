@@ -1,6 +1,7 @@
 export * from './types';
 export * from './hosts';
 export * from './password';
+export * from './phone';
 export * from './session';
 export * from './http';
 export * from './AuthProvider';

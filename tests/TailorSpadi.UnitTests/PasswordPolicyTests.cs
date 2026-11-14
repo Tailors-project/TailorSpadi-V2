@@ -13,18 +13,19 @@ public sealed class PasswordPolicyTests
     [Theory]
     [InlineData(null)]
     [InlineData("")]
-    [InlineData("short1!")]
-    [InlineData("123456789")]
+    [InlineData("short1")]
+    [InlineData("123456")]
     public void RejectsMissingOrShortPasswords(string? password)
     {
         Assert.NotNull(PasswordPolicy.Validate(password));
     }
 
     [Fact]
-    public void LengthBoundsAre10And128()
+    public void LengthBoundsAre7And128()
     {
         Assert.Null(PasswordPolicy.Validate(new string('a', 5) + "B3$xyz9Q"));
-        Assert.NotNull(PasswordPolicy.Validate("abcdefghi"));
+        Assert.NotNull(PasswordPolicy.Validate("abcdef"));
+        Assert.Null(PasswordPolicy.Validate("sewing7"));
         Assert.Null(PasswordPolicy.Validate("Aa1!" + new string('x', 124)));
         Assert.NotNull(PasswordPolicy.Validate("Aa1!" + new string('x', 125)));
     }

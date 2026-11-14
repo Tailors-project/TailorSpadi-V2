@@ -19,9 +19,9 @@ public sealed class SaveBusinessInfoValidator : AbstractValidator<SaveBusinessIn
             RuleFor(command => command.Business.BusinessName).NotEmpty().MinimumLength(2).MaximumLength(100);
             RuleFor(command => command.Business.Description).MaximumLength(1000);
             RuleFor(command => command.Business.Phone).ValidPhone();
-            RuleFor(command => command.Business.WhatsApp).Matches(@"^[0-9+()\-\s]{7,20}$")
+            RuleFor(command => command.Business.WhatsApp).Must(PhonePolicy.IsValid)
                 .When(command => !string.IsNullOrWhiteSpace(command.Business.WhatsApp))
-                .WithMessage("Enter a valid WhatsApp number.");
+                .WithMessage("Enter a valid WhatsApp number with 7–15 digits.");
             RuleFor(command => command.Business.Email).ValidEmail();
             RuleFor(command => command.Business.Address).MaximumLength(200);
             RuleFor(command => command.Business.City).MaximumLength(80);

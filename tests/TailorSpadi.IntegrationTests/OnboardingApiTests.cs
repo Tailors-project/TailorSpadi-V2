@@ -1,10 +1,56 @@
 using System.Net;
+using Microsoft.EntityFrameworkCore;
 using TailorSpadi.IntegrationTests.Support;
 
 namespace TailorSpadi.IntegrationTests;
 
 public sealed class OnboardingApiTests(PostgresFixture postgres) : DatabaseTestBase(postgres)
 {
+    [Theory]
+    [InlineData("owner")]
+    [InlineData("unregistered-contact")]
+    [InlineData("another-account")]
+    public async Task BusinessContactEmailDoesNotDetermineLoginOrOwnership(string contactKind)
+    {
+        Account owner = await App.RegisterTailorAsync();
+        string contactEmail = contactKind == "owner" ? owner.Email : TestApp.NewEmail("contact");
+        if (contactKind == "another-account")
+        {
+            await App.RegisterTailorAsync(contactEmail);
+        }
+
+        Session session = await App.LoginAsync("localhost", owner);
+        ApiResult draft = await App.PutAsync("localhost", "/api/onboarding/business", Business(contactEmail), session.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, draft.Status);
+        await App.PutAsync("localhost", "/api/onboarding/branding",
+            new { primaryColor = "#112233", secondaryColor = "#AABBCC" }, session.AccessToken);
+        ApiResult complete = await App.PostAsync("localhost", "/api/onboarding/complete",
+            new { draftId = draft.Str("draftId") }, session.AccessToken);
+        Assert.Equal(HttpStatusCode.OK, complete.Status);
+        string host = complete.Str("subdomain") + ".localhost";
+
+        ApiResult ownerLogin = await App.PostAsync(host, "/api/auth/login", new { email = owner.Email, password = owner.Password });
+        Assert.Equal(HttpStatusCode.OK, ownerLogin.Status);
+        Assert.Equal("TenantOwner", ownerLogin.Str("session", "role"));
+        Assert.Equal(owner.Email, ownerLogin.Str("session", "user", "email"));
+        Assert.Equal(contactEmail, (await App.GetAsync(host, "/api/tenant/current")).Str("email"));
+
+        if (contactKind != "owner")
+        {
+            ApiResult contactLogin = await App.PostAsync(host, "/api/auth/login",
+                new { email = contactEmail, password = TestApp.StrongPassword });
+            Assert.Equal(contactKind == "another-account" ? HttpStatusCode.Forbidden : HttpStatusCode.Unauthorized, contactLogin.Status);
+            Assert.Equal(contactKind == "another-account" ? "membership_required" : "invalid_credentials", contactLogin.Code);
+        }
+
+        await App.WithDbAsync(async db =>
+        {
+            var memberships = await db.TenantMemberships.IgnoreQueryFilters().ToListAsync();
+            var membership = Assert.Single(memberships);
+            Assert.Equal(Guid.Parse(ownerLogin.Str("session", "user", "id")), membership.UserId);
+        });
+    }
+
     private static object Business(string email, string name = "Stitch Perfect") => new
     {
         businessName = name,
@@ -74,7 +120,7 @@ public sealed class OnboardingApiTests(PostgresFixture postgres) : DatabaseTestB
     }
 
     [Fact]
-    public async Task CompletionCreatesTheTenantWithANumberedSubdomainAndIsIdempotent()
+    public async Task CompletionUsesTheBusinessNameAndIsIdempotent()
     {
         Account owner = await App.RegisterTailorAsync();
         Session session = await App.LoginAsync("localhost", owner);
@@ -87,7 +133,7 @@ public sealed class OnboardingApiTests(PostgresFixture postgres) : DatabaseTestB
         ApiResult second = await App.PostAsync("localhost", "/api/onboarding/complete", new { draftId }, session.AccessToken);
 
         Assert.Equal(HttpStatusCode.OK, first.Status);
-        Assert.Matches("^john-and-sons-fashion-\\d{3}$", first.Str("subdomain"));
+        Assert.Equal("john-and-sons-fashion", first.Str("subdomain"));
         Assert.Equal(first.Str("subdomain"), second.Str("subdomain"));
         Assert.Equal(1, await CountTenantsAsync());
 
@@ -112,11 +158,33 @@ public sealed class OnboardingApiTests(PostgresFixture postgres) : DatabaseTestB
     }
 
     [Fact]
-    public async Task ConcurrentBusinessesWithTheSameNameGetDistinctSubdomains()
+    public async Task ConcurrentBusinessesCannotClaimTheSameGeneratedAddress()
     {
-        OnboardedTenant[] tenants = await Task.WhenAll(
-            App.OnboardTenantAsync("Stitch Perfect"), App.OnboardTenantAsync("Stitch Perfect"));
-        Assert.NotEqual(tenants[0].Subdomain, tenants[1].Subdomain);
+        async Task<(string DraftId, string Token)> Prepare()
+        {
+            Account owner = await App.RegisterTailorAsync();
+            Session session = await App.LoginAsync("localhost", owner);
+            string draftId = (await App.PutAsync("localhost", "/api/onboarding/business", Business(owner.Email), session.AccessToken)).Str("draftId");
+            await App.PutAsync("localhost", "/api/onboarding/branding",
+                new { primaryColor = "#112233", secondaryColor = "#AABBCC" }, session.AccessToken);
+            ApiResult preview = await App.PostAsync("localhost", "/api/onboarding/subdomain/preview", new { slugBase = "ignored-custom-name" }, session.AccessToken);
+            Assert.Equal("stitch-perfect", preview.Str("suggestedSubdomain"));
+            return (draftId, session.AccessToken);
+        }
+
+        var first = await Prepare();
+        var second = await Prepare();
+        ApiResult[] results = await Task.WhenAll(new[] { first, second }.Select(draft =>
+            App.PostAsync("localhost", "/api/onboarding/complete", new { draftId = draft.DraftId, slugBase = "ignored-custom-name" }, draft.Token)));
+        ApiResult winner = Assert.Single(results, result => result.Status == HttpStatusCode.OK);
+        Assert.Equal("stitch-perfect", winner.Str("subdomain"));
+        Assert.Equal("subdomain_taken", Assert.Single(results, result => result.Status == HttpStatusCode.Conflict).Code);
+        Assert.Equal(1, await CountTenantsAsync());
+        var loser = results[0].Status == HttpStatusCode.Conflict ? first : second;
+        ApiResult unavailable = await App.PostAsync("localhost", "/api/onboarding/subdomain/preview", new { }, loser.Token);
+        Assert.Equal("subdomain_taken", unavailable.Code);
+        ApiResult save = await App.PutAsync("localhost", "/api/onboarding/subdomain", new { }, loser.Token);
+        Assert.Equal("subdomain_taken", save.Code);
     }
 
     [Fact]
@@ -124,7 +192,7 @@ public sealed class OnboardingApiTests(PostgresFixture postgres) : DatabaseTestB
     {
         Account owner = await App.RegisterTailorAsync();
         Session session = await App.LoginAsync("localhost", owner);
-        await App.PutAsync("localhost", "/api/onboarding/business", Business(owner.Email), session.AccessToken);
+        await App.PutAsync("localhost", "/api/onboarding/business", Business(owner.Email, "Admin"), session.AccessToken);
 
         ApiResult result = await App.PostAsync("localhost", "/api/onboarding/subdomain/preview", new { slugBase = "admin" }, session.AccessToken);
 

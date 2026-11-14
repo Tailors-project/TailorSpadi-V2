@@ -57,9 +57,9 @@ public sealed class CompleteOnboardingHandler(
 
             EnsureComplete(draft);
 
-            string slugBase = SubdomainAllocator.ResolveBase(command.SlugBase ?? draft.PreferredSlugBase, draft.BusinessName);
-            int suffix = await allocator.NextSuffixAsync(slugBase, cancellationToken);
-            string subdomain = SubdomainRules.WithSuffix(slugBase, suffix);
+            string slugBase = SubdomainAllocator.ResolveBase(null, draft.BusinessName);
+            await allocator.EnsureAvailableAsync(slugBase, draft.Id, cancellationToken);
+            string subdomain = slugBase;
             DateTime now = clock.GetUtcNow().UtcDateTime;
 
             draft.Activate(subdomain, now);
@@ -81,7 +81,7 @@ public sealed class CompleteOnboardingHandler(
             }
             catch (DbUpdateException exception) when (db.IsUniqueViolation(exception) || exception is DbUpdateConcurrencyException)
             {
-                // Someone took the suffix, or this draft was completed in parallel. Start again from stored state.
+                // Someone took the address, or this draft was completed in parallel. Start again from stored state.
                 db.DiscardChanges();
             }
         }

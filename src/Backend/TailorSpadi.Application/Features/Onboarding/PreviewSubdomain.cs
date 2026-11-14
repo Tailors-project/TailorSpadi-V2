@@ -25,9 +25,9 @@ public sealed class PreviewSubdomainHandler(OnboardingService onboarding, Subdom
         Guid userId = onboarding.RequireOnboardingUser();
         Tenant draft = await onboarding.RequireDraftAsync(userId, cancellationToken);
 
-        string slugBase = SubdomainAllocator.ResolveBase(query.SlugBase, draft.BusinessName);
-        int suffix = await allocator.NextSuffixAsync(slugBase, cancellationToken);
-        string suggested = SubdomainRules.WithSuffix(slugBase, suffix);
+        string slugBase = SubdomainAllocator.ResolveBase(null, draft.BusinessName);
+        await allocator.EnsureAvailableAsync(slugBase, draft.Id, cancellationToken);
+        string suggested = slugBase;
         return new SubdomainPreview(slugBase, suggested, urls.Tenant(suggested, "/"), true);
     }
 }

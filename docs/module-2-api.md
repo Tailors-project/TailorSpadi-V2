@@ -72,7 +72,7 @@ interface OnboardingState {
   hasDraft: boolean;
   draftId: string | null;
   step: 1 | 2 | 3 | 4;             // the next step to show; resume here
-  slugBase: string | null;          // saved choice, before final suffix allocation
+  slugBase: string | null;          // generated address confirmed before review
   business: { businessName: string; description: string; phone: string; whatsApp: string;
               email: string; address: string; city: string; state: string; country: string };
   branding: { primaryColor: string; secondaryColor: string; logoPreviewDataUrl: string | null };
@@ -87,9 +87,9 @@ interface SubdomainPreview { slugBase: string; suggestedSubdomain: string; url: 
 | `PUT /api/onboarding/business` | `business` object | 200 `OnboardingState` (creates the draft on first save) |
 | `PUT /api/onboarding/branding` | `{primaryColor,secondaryColor}` (`#RRGGBB`) | 200 `OnboardingState` |
 | `POST /api/onboarding/logo` | multipart field `file` | 200 `OnboardingState`; 400 `invalid_image` |
-| `POST /api/onboarding/subdomain/preview` | `{slugBase?: string}` (omit = derive from business name) | 200 `SubdomainPreview`; 400 `reserved_name` / validation |
-| `PUT /api/onboarding/subdomain` | `{slugBase?: string}` | 200 `OnboardingState`; persists the chosen base and review step |
-| `POST /api/onboarding/complete` | `{draftId, slugBase?}` | 200 `CompleteResult` (idempotent for the same draft) |
+| `POST /api/onboarding/subdomain/preview` | `{}` (derived from saved business name) | 200 `SubdomainPreview`; 409 `subdomain_taken`; 400 `reserved_name` / validation |
+| `PUT /api/onboarding/subdomain` | `{}` | 200 `OnboardingState`; persists the generated address and review step; 409 `subdomain_taken` |
+| `POST /api/onboarding/complete` | `{draftId}` | 200 `CompleteResult` (idempotent for the same draft) |
 
 Business fields: `businessName` required (2-100), `phone` required, `email` required,
 `description` optional (max 1000), `whatsApp`, `address`, `city`, `state`, `country`
@@ -106,3 +106,5 @@ Business fields: `businessName` required (2-100), `phone` required, `email` requ
 ## Password policy (client hints; server is authoritative)
 
 At least 10 and at most 128 characters; common passwords are rejected; must differ from the email.
+
+Legacy `slugBase` request values are ignored. Addresses always derive from the saved business name; duplicate addresses return `409 subdomain_taken`.

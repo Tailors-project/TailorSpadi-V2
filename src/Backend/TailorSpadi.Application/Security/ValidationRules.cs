@@ -29,7 +29,7 @@ public static class ValidationRules
 
     public static IRuleBuilderOptions<T, string> ValidPhone<T>(this IRuleBuilder<T, string> rule)
     {
-        return rule.NotEmpty().Matches(@"^[0-9+()\-\s]{7,20}$").WithMessage("Enter a valid phone number.");
+        return rule.Must(PhonePolicy.IsValid).WithMessage("Enter a valid phone number with 7–15 digits.");
     }
 
     public static IRuleBuilderOptions<T, string> ValidHexColor<T>(this IRuleBuilder<T, string> rule)

@@ -17,8 +17,7 @@ public sealed class RegisterCustomerValidator : AbstractValidator<RegisterCustom
         RuleFor(command => command.FirstName).ValidPersonName();
         RuleFor(command => command.LastName).ValidPersonName();
         RuleFor(command => command.Email).ValidEmail();
-        RuleFor(command => command.Phone).Matches(@"^[0-9+()\-\s]{7,20}$").When(command => !string.IsNullOrWhiteSpace(command.Phone))
-            .WithMessage("Enter a valid phone number.");
+        RuleFor(command => command.Phone).ValidPhone().When(command => !string.IsNullOrWhiteSpace(command.Phone));
         RuleFor(command => command.Password).ValidPassword();
         RuleFor(command => command.ConfirmPassword).Equal(command => command.Password).WithMessage("Passwords do not match.");
     }

@@ -16,13 +16,14 @@ test('register, resume onboarding, launch and sign in on the tenant host', async
     await page.getByLabel('Confirm password', { exact: true }).fill(password);
     await page.getByRole('button', { name: 'Create account', exact: true }).click();
     await expect(page.getByText('Tell us about your business')).toBeVisible();
-    await page.getByLabel('Business name', { exact: true }).fill('Browser Verification');
+    await page.getByLabel('Business name', { exact: true }).fill(`Browser Verification ${randomUUID().slice(0, 8)}`);
     await page.getByLabel('Phone', { exact: true }).fill('+2348012345678');
     await page.getByLabel('Business email', { exact: true }).fill(email);
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect(page.getByText('Make it yours')).toBeVisible();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
-    await page.getByLabel('Address name').fill(`browser-${randomUUID().slice(0, 8)}`);
+    await expect(page.getByLabel('Address name')).toHaveCount(0);
+    await expect(page.getByText('Your store will be at')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Continue', exact: true })).toBeEnabled();
     await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await expect(page.getByText('Review and launch')).toBeVisible();

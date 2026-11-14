@@ -21,7 +21,7 @@ For the last recorded results, see [verification.md](verification.md).
    image larger than 2 MiB. The default decoded image limit is 16 million pixels.
 7. Record the website URLs returned when creating businesses. Below, **Platform**
    means `https://tailorspadi.localhost:8443`; **Tenant A/B** means those returned URLs.
-   Never guess the numeric suffix assigned to a business.
+   Use the generated address returned by the API.
 
 Run the browser cases below in order. Keep the test businesses until all checks
 finish. Manual test accounts remain in the local database; the automated browser
@@ -41,7 +41,7 @@ business shows “Store not found”. There are no broken assets or certificate 
 ### M02 — Tailor registration and validation
 
 1. Open Platform `/register` and submit empty fields.
-2. Try an invalid email, a password shorter than 10 characters, and mismatched
+2. Try an invalid email, a password shorter than 7 characters, and mismatched
    password confirmation. Try a common password as a separate check.
 3. Enter valid details for Owner A and select **Create account**.
 4. Sign out and attempt another registration using the same email with different
@@ -87,17 +87,15 @@ preserve the previously saved logo. Saved branding persists. Accepted images are
 re-encoded to PNG and stored at a maximum edge of 512 pixels. Exact decoded-size
 and cleanup behavior is also covered by the automated upload tests.
 
-### M06 — Subdomain selection and review resume
+### M06 ? Generated address and review resume
 
-1. Continue to the address/subdomain step.
-2. Check the suggested base derived from `John & Sons Fashion`.
-3. Try a reserved name such as `admin`, then a valid unique address name.
-4. Wait for the availability check, select **Continue**, and reload the review page.
-5. Go back, choose another valid name, save, and reload again.
+1. Continue to the address step with business name `John & Sons Fashion`.
+2. Verify the generated address is `john-and-sons-fashion` and there is no editable slug field.
+3. Use Business to try a reserved or already registered business name.
+4. Verify that availability checking blocks Continue and asks for a more distinctive name.
+5. Save a distinct business name, continue to Review, and reload.
 
-**Expected:** The derived base is `john-and-sons-fashion`. Reserved/invalid names
-are rejected. The latest saved choice and review step survive reload. The preview
-is a suggestion; completion makes the final allocation with a three-digit suffix.
+**Expected:** The server derives the address from the saved business name, without a numeric suffix. Custom slug values cannot override it. The review step survives reload. Concurrent launches cannot claim the same address; existing tenant addresses remain unchanged.
 
 ### M07 — Launch and platform-to-tenant handoff
 

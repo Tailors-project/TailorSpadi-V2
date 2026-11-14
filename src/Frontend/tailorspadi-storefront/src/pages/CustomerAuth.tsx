@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
-import { ProblemAlert, TextField, applyServerErrors, passwordHints, passwordProblem, toProblem, useAuth } from 'tailorspadi-shared';
+import { ProblemAlert, TextField, applyServerErrors, passwordHints, passwordProblem, phoneProblem, toProblem, useAuth } from 'tailorspadi-shared';
 
 interface RegisterForm { firstName: string; lastName: string; email: string; phone: string; password: string; confirmPassword: string }
 const FIELDS = ['firstName', 'lastName', 'email', 'phone', 'password', 'confirmPassword'] as const;
@@ -48,7 +48,7 @@ export function RegisterCustomerPage() {
         </div>
         <TextField<RegisterForm> name="email" label="Email" type="email" autoComplete="email" register={register} errors={errors}
           options={{ required: 'Enter your email', pattern: { value: /^\S+@\S+\.\S+$/, message: 'Enter a valid email' } }} />
-        <TextField<RegisterForm> name="phone" label="Phone (optional)" type="tel" autoComplete="tel" register={register} errors={errors} />
+        <TextField<RegisterForm> name="phone" label="Phone (optional)" type="tel" autoComplete="tel" register={register} errors={errors} options={{ validate: (value) => phoneProblem(value, false) ?? true }} />
         <TextField<RegisterForm> name="password" label="Password" type="password" autoComplete="new-password" register={register} errors={errors}
           options={{ validate: (value) => passwordProblem(value, email) ?? true }}
           hint={<ul className="list-unstyled mb-0">{passwordHints(password, email).map((hint) => <li key={hint.text}>{hint.ok ? '✓' : '○'} {hint.text}</li>)}</ul>} />

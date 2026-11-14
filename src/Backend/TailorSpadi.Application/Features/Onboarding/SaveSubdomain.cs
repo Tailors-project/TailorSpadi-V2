@@ -29,8 +29,8 @@ public sealed class SaveSubdomainHandler(
             throw ProblemException.Conflict("onboarding_incomplete", "Save your business details and branding first.");
         }
 
-        string slugBase = SubdomainAllocator.ResolveBase(command.SlugBase, draft.BusinessName);
-        await allocator.NextSuffixAsync(slugBase, cancellationToken);
+        string slugBase = SubdomainAllocator.ResolveBase(null, draft.BusinessName);
+        await allocator.EnsureAvailableAsync(slugBase, draft.Id, cancellationToken);
         draft.PreferredSlugBase = slugBase;
         draft.AdvanceTo(4);
         draft.Touch(clock.GetUtcNow().UtcDateTime);
