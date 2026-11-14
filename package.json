@@ -7,11 +7,15 @@
   "scripts": {
     "build": "npm run build --workspaces",
     "test": "npm run test --workspaces",
+    "test:e2e": "playwright test",
     "dev:storefront": "npm run dev --workspace tailorspadi-storefront",
     "dev:backoffice": "npm run dev --workspace tailorspadi-backoffice",
     "dev:admin": "npm run dev --workspace tailorspadi-admin"
   },
   "engines": {
     "node": ">=22.12.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0"
   }
 }

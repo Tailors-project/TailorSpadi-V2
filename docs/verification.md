@@ -1,121 +1,70 @@
-# Module 1 verification
+# Module 2 verification — 11 November 2026
 
-Verified on 2026-09-30 on Windows with .NET SDK 10.0.201, Node 22.17.0,
-npm 11.19.1, Docker Desktop 4.68.0, and the Docker Linux engine.
+The downloaded implementation was integrated into `feature/module-2-integration`
+and completed against `module-2-guidelines.md`. The Downloads folder was preserved.
+This record supersedes the earlier Module 1 and downloaded sandbox results.
 
-## Results
+## Implemented and reviewed
 
-| Check | Actual result |
+- Global identity, separate platform/tenant/admin sessions, password recovery
+  contracts, refresh rotation/reuse detection and security-stamp invalidation.
+- Four-step resumable onboarding, saved address selection, atomic/idempotent
+  completion, concurrent subdomain allocation and immutable assigned addresses.
+- Host-based tenant resolution, bounded cache invalidation, tenant write guards,
+  membership constraints and authorized status changes/session revocation.
+- Validated/re-encoded logo storage, temporary/new-file cleanup and replacement.
+- Shared frontend session handling, guarded routes, accessible forms, previews,
+  loading/error states and logout cache clearing.
+- Two real EF migrations, local HTTPS, wildcard tenant routing, persistent storage,
+  secret initialization and pinned dependency lock files.
+
+## Checks
+
+| Check | Result |
 | --- | --- |
-| All six C# projects build | Passed; 0 warnings, 0 errors |
-| C# formatting verification | Passed; dotnet format --verify-no-changes |
-| C# unit tests on Windows | 10 passed |
-| API integration tests without PostgreSQL | 5 passed |
-| Isolated real PostgreSQL integration test | 1 passed |
-| C# unit tests inside the Linux API build | 10 passed |
-| TypeScript checks and production builds | All three frontend apps passed |
-| Frontend date/time tests | 12 passed, four per app |
-| npm dependency audit | 0 known vulnerabilities at verification time |
-| Locked NuGet restore in Linux image | Passed without suppressed audit warnings |
-| EF tool restore and migrations list | Passed; no migrations, as expected |
-| Docker Compose configuration | Valid |
-| API and three frontend image builds | Passed |
-| Full Compose startup with --wait | Passed |
-| Local API / health / Swagger / frontend route checks | Passed |
-| Local rendered browser checks | Four URLs passed |
-| Docker host/path/asset/API checks | Eleven checks passed |
-| Docker rendered browser checks | Seven URLs passed |
-| Database outage and recovery | Passed |
+| Locked NuGet restore | Passed |
+| C# unit tests | 104 passed |
+| PostgreSQL integration tests | 70 passed; no failures or skips (final run: 6 minutes 5 seconds) |
+| Frontend tests | 29 passed |
+| npm clean installation | Passed |
+| Production frontend builds | All workspaces passed |
+| C# formatting | Verified with no changes |
+| Docker Linux build and health | Full stack and final API image passed; services healthy |
+| HTTPS routes and browser checks | 10 route checks, 5 rendered pages and the full onboarding journey passed |
+| npm vulnerability audit | No vulnerabilities reported |
+| NuGet audit, including transitive packages | No vulnerabilities reported in six projects |
 
-There are 16 distinct C# tests (10 unit, 6 integration). The Linux build repeats
-the 10 unit tests; it does not introduce ten additional distinct tests.
+Integration tests apply committed migrations to disposable PostgreSQL databases.
+They cover identity expiry/reuse, CSRF, authorization, tenant isolation, concurrency,
+cache invalidation, uploads, database constraints and migration/model consistency.
+An earlier run passed 69/70 tests; one database connection timed out before the
+concurrent-onboarding test body. The fixture now avoids retaining a pool for each
+isolated test database and allows a longer local Docker connection timeout.
 
-## What was exercised
+The browser test creates a uniquely named account, reloads saved onboarding,
+launches a business, signs in on its tenant host and reloads its session. It checks
+secure host-only HttpOnly cookies and empty browser credential storage, then
+removes its generated database records. Certificate errors are not ignored.
+Edge rejected the original `*.localhost` certificate; local addresses now use
+`tailorspadi.localhost` and `*.tailorspadi.localhost` with a trusted certificate.
 
-- The system-information handler and scoped mediator dispatch return public
-  metadata without a tenant or a database connection.
-- Validation prevents handler execution and becomes HTTP 400 Problem Details.
-- Logging avoids private request values and exception messages.
-- Cancellation passes through the pipeline and is honored by the handler.
-- UTC-to-Lagos conversion crosses midnight correctly.
-- Business appointments convert to UTC and daily boundaries use Lagos midnight.
-- DateOnly JSON values remain unchanged.
-- A real disposable PostgreSQL 17 container validates EF connectivity,
-  timestamptz UTC round trips, and date round trips. No EF InMemory provider is used.
-- Development Swagger exposes the system-information endpoint.
-- Vite serves and refreshes nested routes, and proxies the storefront API call.
-- Headless Edge renders each local app, including the storefront's actual API response.
+## Local state and scope limits
 
-Local browser URLs:
-- http://127.0.0.1:5173/
-- http://127.0.0.1:5174/login
-- http://127.0.0.1:5174/backoffice/orders
-- http://127.0.0.1:5175/admin/users
+The local database retains its volume and has both migrations applied. On this
+machine PostgreSQL uses port 55432 because Windows reserves the original 54329.
+No demo tenants or default administrator were seeded. Changes remain uncommitted;
+nothing has been pushed or deployed remotely.
 
-Container browser URLs:
-- http://localhost:8080/
-- http://localhost:8080/register
-- http://localhost:8080/onboarding
-- http://localhost:8080/admin/users
-- http://johnfashion-001.localhost:8080/
-- http://johnfashion-001.localhost:8080/login
-- http://johnfashion-001.localhost:8080/backoffice/orders
+Real email delivery remains deferred to Module 7. At the time of this run, the development adapter logged
+only delivery intent, never reset links or message bodies; recovery logic was
+verified with a recording email adapter in integration tests. Admin management
+screens and later business modules remain outside Module 2. Status commands are
+implemented and tested without adding an unrequested management API.
 
-The Docker route script also fetched each page's JavaScript/CSS assets,
-verified metadata from both hosts, checked unknown.localhost returns 400,
-and checked /api/missing returns 404 instead of frontend HTML.
+Public DNS/TLS deployment, Visual Studio's interactive debugger/Test Explorer and
+production operations were not exercised. Follow README for setup and reproduction.
+Logs, browser output and TRX files are local ignored artifacts.
 
-During a controlled stop of this project's PostgreSQL container:
-- /health/live returned 200.
-- /health/ready returned 503.
-- /api/system-info returned 200.
-- After PostgreSQL restart, readiness returned 200 and the gateway was healthy.
-
-## Handoff state
-
-The full Docker stack is running at http://localhost:8080.
-The local Vite/API development processes used for verification were stopped
-to avoid conflicting with Docker's API port.
-
-The initialized development database volume is retained. The ignored .env and
-.NET user secrets are configured for this machine. Testcontainers disposed of
-its separate test database container.
-
-A local Git repository was initialized. No remote, commit, or publication was
-created. Generated output, browser artifacts, test output, and .env are ignored.
-
-## Checks not performed / scope limits
-
-- Visual Studio F5 and the interactive Test Explorer were not manually exercised.
-  The solution and all projects were built with the installed .NET SDK; the
-  README provides Visual Studio setup instructions.
-- Real DNS, public TLS, Internet deployment, authentication, and database-backed
-  tenant resolution are outside Module 1 and were not claimed as tested.
-- The tenant hostname is a routing fixture only. The placeholder pages contain
-  no business data and do not implement authorization.
-- No business migration was applied because this module has no business entities.
-  EF may report that no mapping classes exist when inspecting the empty context.
-- Module 2 decisions remain documented in architecture.md.
-
-## Reproduce
-
-From the repository root:
-
-```powershell
-dotnet restore TailorSpadi.sln --locked-mode
-dotnet build TailorSpadi.sln --no-restore
-dotnet format TailorSpadi.sln --verify-no-changes --no-restore
-dotnet test TailorSpadi.sln --no-build
-npm ci
-npm run build
-npm test
-docker compose up --build -d --wait
-./scripts/Verify-Routes.ps1
-./scripts/Verify-Browser.ps1
-```
-
-Docker must be running for the real PostgreSQL test. Browser verification is
-optional Windows/Edge tooling; route checks do not require a browser.
-
-Test runner output is saved locally under TestResults. Browser DOM/log files
-are under artifacts. These generated files are intentionally not committed.
+On 12 November, local email previews were added for Development via
+`Email:ShowInConsole`. See README for console/debugger and Docker instructions.
+The test results above predate that change.

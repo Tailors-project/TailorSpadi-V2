@@ -1,0 +1,7 @@
+# Local testing only. Full messages, including password-reset links, appear in console output.
+# docker compose -f compose.yaml -f compose.email-debug.yaml up --build -d --wait
+services:
+  api:
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      Email__ShowInConsole: "true"

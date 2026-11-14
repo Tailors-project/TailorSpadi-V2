@@ -1,5 +1,5 @@
 param(
-    [string]$BaseUrl = 'http://localhost:8080',
+    [string]$BaseUrl = 'https://tailorspadi.localhost:8443',
     [switch]$Local
 )
 $ErrorActionPreference = 'Stop'
@@ -11,21 +11,22 @@ if (-not (Test-Path -LiteralPath $edge)) { throw 'This optional browser check re
 
 if ($Local) {
     $checks = @(
-        @{ Url = 'http://127.0.0.1:5173/'; Text = 'TailorSpadi is connected.' },
+        @{ Url = 'http://127.0.0.1:5173/'; Text = 'A home for great tailoring.' },
+        @{ Url = 'http://127.0.0.1:5174/register'; Text = 'Create your account' },
         @{ Url = 'http://127.0.0.1:5174/login'; Text = 'Welcome back' },
-        @{ Url = 'http://127.0.0.1:5174/backoffice/orders'; Text = 'Your workspace' },
-        @{ Url = 'http://127.0.0.1:5175/admin/users'; Text = 'The platform management workspace is coming soon.' }
+        @{ Url = 'http://127.0.0.1:5175/admin/login'; Text = 'Administrator sign in' }
     )
 } else {
-    $tenantUrl = $BaseUrl.Replace('localhost', 'johnfashion-001.localhost')
+    # No tenant exists until one is onboarded, so a tenant host demonstrates the not-found page.
+    $unknownTenant = New-Object System.UriBuilder($BaseUrl)
+    $unknownTenant.Host = 'nobody-here.' + $unknownTenant.Host
+    $unknownTenantUrl = $unknownTenant.Uri.AbsoluteUri.TrimEnd('/')
     $checks = @(
-        @{ Url = $BaseUrl + '/'; Text = 'TailorSpadi is connected.' },
+        @{ Url = $BaseUrl + '/'; Text = 'A home for great tailoring.' },
         @{ Url = $BaseUrl + '/register'; Text = 'Create your account' },
-        @{ Url = $BaseUrl + '/onboarding'; Text = 'Set up your business' },
-        @{ Url = $BaseUrl + '/admin/users'; Text = 'The platform management workspace is coming soon.' },
-        @{ Url = $tenantUrl + '/'; Text = 'TailorSpadi is connected.' },
-        @{ Url = $tenantUrl + '/login'; Text = 'Welcome back' },
-        @{ Url = $tenantUrl + '/backoffice/orders'; Text = 'Your workspace' }
+        @{ Url = $BaseUrl + '/login'; Text = 'Welcome back' },
+        @{ Url = $BaseUrl + '/admin/login'; Text = 'Administrator sign in' },
+        @{ Url = $unknownTenantUrl + '/'; Text = 'Store not found' }
     )
 }
 

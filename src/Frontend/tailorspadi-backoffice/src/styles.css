@@ -6,3 +6,30 @@ body { margin: 0; background: #f6f7f3; color: #203b35; }
 main { max-width: 960px; }
 .placeholder-card { background: #fff; border: 1px solid #dce4de; border-radius: 1rem; }
 .eyebrow { color: #516d63; letter-spacing: .12em; font-size: .8rem; font-weight: 700; text-transform: uppercase; }
+
+.tenant-business .site-header {
+  background: var(--tenant-primary);
+  border-bottom: 5px solid var(--tenant-secondary);
+}
+.tenant-business .site-header a { color: var(--tenant-on-primary); }
+.tenant-logo { width: 64px; height: 64px; object-fit: contain; background: #fff; border-radius: .5rem; padding: 4px; }
+.tenant-business .placeholder-card { border-top: 4px solid var(--tenant-secondary); }
+.tenant-business main a { color: var(--tenant-primary); text-decoration: underline; }
+.tenant-business .btn-primary {
+  --bs-btn-bg: var(--tenant-primary);
+  --bs-btn-border-color: var(--tenant-primary);
+  --bs-btn-color: var(--tenant-on-primary);
+  --bs-btn-hover-bg: var(--tenant-primary);
+  --bs-btn-hover-border-color: var(--tenant-secondary);
+  --bs-btn-hover-color: var(--tenant-on-primary);
+  --bs-btn-active-bg: var(--tenant-primary);
+  --bs-btn-active-border-color: var(--tenant-secondary);
+  --bs-btn-active-color: var(--tenant-on-primary);
+  --bs-btn-disabled-bg: var(--tenant-primary);
+  --bs-btn-disabled-border-color: var(--tenant-primary);
+  --bs-btn-disabled-color: var(--tenant-on-primary);
+}
+.tenant-business .btn:focus-visible, .tenant-business .form-control:focus {
+  border-color: var(--tenant-secondary);
+  box-shadow: 0 0 0 .2rem color-mix(in srgb, var(--tenant-secondary) 35%, transparent);
+}

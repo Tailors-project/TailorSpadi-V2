@@ -27,6 +27,8 @@ system-information feature as an example.
   Do not block on async calls with Result or Wait.
 - Use structured logging with fixed message templates. Do not log request
   bodies, tokens, passwords, connection strings, or customer measurements.
+  The explicit local-testing exception is the Development email console preview,
+  controlled by `Email:ShowInConsole`; never register it in Production.
 - Validation messages must be safe to show to a user and must not echo secrets.
 - Use explicit transactions when several writes must commit together.
   Do not wrap every request in a transaction.
@@ -34,8 +36,8 @@ system-information feature as an example.
   the feature. Use UTC instants and DateOnly as described in the README.
 - Use small focused tests for business rules, integrations, and failure modes.
   Database compatibility checks use real PostgreSQL.
-- TypeScript remains strict. Keep API calls in each app's client module.
-  Do not add a shared component package until duplication warrants it.
+- TypeScript remains strict. Use the shared API/session client for authenticated
+  requests. Share small form and route helpers where the three apps duplicate them.
 
 Run `dotnet format TailorSpadi.sln --no-restore` before review, followed by
 the build/tests. Exact NuGet and npm dependencies are recorded in lock files.
